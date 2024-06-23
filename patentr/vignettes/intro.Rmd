@@ -1,0 +1,134 @@
+---
+title: "Introduction to patentr"
+author: "Raoul R. Wadhwa, James Yu, Milind Y. Desai, Péter Érdi, Jacob G. Scott"
+date: "17 July 2021"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction to patentr}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+## Purpose
+
+Information about patents approved in the United States is publicly available.
+The United States Patent and Trademark Office (USPTO) provides digital bulk patent files on its website containing basic details including patent titles, application and issue dates, classification, and so on.
+Although files are available for patents issued during or after 1976, patents from different periods are accessible in different formats: patents issued between 1976 and 2001 (inclusive) are provided in TXT files; patents issued between 2002 and 2004 (inclusive) are provided in one XML format; and patents issued during or after 2005 are provided in a second XML format.
+The `patentr` R package accesses USPTO bulk data files and converts them to rectangular CSV format so that users do not have to deal with distinct formats and can work with patent data more easily.
+
+## Installation
+
+CRAN hosts the stable version of `patentr` and GitHub hosts the development version.
+Each of the lines of code below install the respective version.
+
+```{r install, eval=FALSE}
+# stable version from CRAN
+install.packages("patentr")
+
+# development version from GitHub
+remotes::install_github("JYProjs/patentr")
+```
+
+## Data acquisition
+
+Acquiring patent data from the USPTO is straightforward with `patentr`'s `get_bulk_patent_data` function.
+First, we load `patentr` and the packages we'll need for this vignette.
+
+```{r setup, message=FALSE}
+library(patentr)
+library(tibble)    # for the tibble data containers
+library(magrittr)  # for the pipe (%>%) operator
+library(dplyr)     # to work with patent data
+library(lubridate) # to work with dates
+```
+
+Then, we use it to acquire data from the first 2 weeks in 1976.
+Since `patentr` stores the data as a local CSV file, we must import the data into R.
+For this, we use the `read.csv` function.
+
+```{r acquire, eval=FALSE}
+# acquire data from USPTO
+get_bulk_patent_data(
+  year = rep(1976, 2),            # each week must have a corresponding year
+  week = 1:2,                     # each week corresponds element-wise to a year
+  output_file = "temp_output.csv" # output file in which patent data is stored
+)
+
+# import data into R
+patent_data <- read.csv("temp_output.csv") %>%
+  as_tibble() %>%
+  mutate(App_Date = as_date(App_Date),
+         Issue_Date=as_date(Issue_Date))
+
+# delete local file (optional - but we no longer need it for this tutorial)
+file.remove("temp_output.csv")
+```
+
+The `patent_data` variable should be equal to the `y1976w1` dataset provided
+with `patentr`.
+We peek at the patent data to get a glimpse of its structure.
+
+```{r set_data, include=FALSE}
+data("y1976w1")
+patent_data <- y1976w1 %>%
+  as_tibble %>%
+  mutate(App_Date = as_date(App_Date),
+         Issue_Date=as_date(Issue_Date))
+```
+
+```{r peek}
+tail(patent_data)
+
+str(patent_data)
+```
+
+## Sample use
+
+For the recently acquired set of patents, let's say we are interested in how long it took for the patents to get issued once the application was submitted.
+We can calculate the difference between issue date (`Issue_Date` column) and application date (`App_Date`) column, then either obtain a numerical summary or visualize the results as a histogram.
+The code block below does both.
+
+```{r example,fig.width=5}
+# calculate time from application to issue (in days)
+lag_time <- patent_data %>%
+  transmute(Lag = Issue_Date - App_Date) %>%
+  pull(Lag) %>%
+  as.numeric
+
+# get quantitative summary
+summary(lag_time)
+
+# plot as histogram
+hist(lag_time,
+     main = "Histogram of delay before issue",
+     xlab = "Time (days)", ylab = "Count")
+```
+
+In addition to application and issue dates, the downloaded USPTO data contains multiple text columns.
+More information about these can be found at https://www.uspto.gov/.
+
+## Available data for each patent
+
+Text in boldface corresponds to column names in datasets returned by `get_bulk_patent_data`.
+Note that the following definitions for each column in the returned dataset are intuitive, not official, definitions.
+For official definitions, visit https://www.uspto.gov/.
+
+* **WKU:** unique identifier for each patent.
+This is not identical to the patent number, but is derived from it.
+The WKU generally has an additional leading zero or a checksum at the end.
+* **Title:** patent title.
+* **App_Date:** date the patent application was submitted.
+* **Issue_Date:** date the patent was filed.
+* **Inventor:** person(s) or organization(s) credited with inventing the patent.
+* **Assignee:** person(s) or organization(s) with an ownership interest in the patent.
+* **ICL_Class:** patent class based on the International Patent Classification (IPC) system.
+For more information, visit https://www.wipo.int/classifications/ipc/en.
+* **References:** set of patents cited by this patent.
+* **Claims:** text field of claims regarding what should be protected by this patent.
