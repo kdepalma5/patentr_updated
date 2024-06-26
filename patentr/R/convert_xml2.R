@@ -10,7 +10,7 @@ convert_xml2 <- function(date_df,
 
   # create header for output file (if necessary)
   if (header) {
-    cat("WKU,Title,App_Date,Issue_Date,Inventor,Assignee,ICL_Class,References,Claims,Abstract\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Inventor,Applicant,Assignee,IPC_Class,References,Claims,Abstract\n",
         file = output_file)
   }
 
@@ -80,7 +80,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
 
     ## process current patent
     curr_xml <- xml2::read_html(curr_patxml)
-    WKU <- curr_xml %>%
+    doc_number <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//publication-reference//document-id//doc-number") %>%
       xml2::xml_text() %>%
       format_field_df()
@@ -102,13 +102,18 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       as.character() %>%
       format_field_df()
 
-    icl_class <- curr_xml %>%
-      xml2::xml_find_all(".//us-patent-grant//classification-ipc//main-classification") %>%
+    #extract ipc class
+    ipc_class <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//classifications-ipcr//classification-ipcr") %>%
       vapply(USE.NAMES = FALSE,
              FUN.VALUE = character(1),
              FUN = function(curr_ipc) {
-               curr_ipc %>%
-                 xml2::xml_text()
+               section <- curr_ipc %>% xml2::xml_find_first(".//section") %>% xml2::xml_text()
+               class <- curr_ipc %>% xml2::xml_find_first(".//class") %>% xml2::xml_text()
+               subclass <- curr_ipc %>% xml2::xml_find_first(".//subclass") %>% xml2::xml_text()
+               main_group <- curr_ipc %>% xml2::xml_find_first(".//main-group") %>% xml2::xml_text()
+               subgroup <- curr_ipc %>% xml2::xml_find_first(".//subgroup") %>% xml2::xml_text()
+               paste0(section, class, subclass, " ", main_group, "/", subgroup)
              }) %>%
       paste0(collapse = ";")
 
@@ -119,9 +124,9 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = " ") %>%
       remove_csv_issues()
 
-    # extract inventor
-    inventor <- curr_xml %>%
-      xml2::xml_find_all(".//us-patent-grant//applicants//applicant//addressbook") %>%
+    # extract APPLICANT
+    applicant <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-parties//us-applicants//us-applicant//addressbook") %>%
       vapply(USE.NAMES = FALSE,
              FUN.VALUE = character(1),
              FUN = function(curr_inv) {
@@ -133,6 +138,25 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                  xml2::xml_find_first(".//last-name") %>%
                  xml2::xml_text()
 
+               paste(curr_first, curr_last)
+             }) %>%
+      paste0(collapse = ";") %>%
+      remove_csv_issues()
+    
+    # extract INVENTOR
+    inventor <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-parties//inventors//inventor//addressbook") %>%
+      vapply(USE.NAMES = FALSE,
+             FUN.VALUE = character(1),
+             FUN = function(curr_inv) {
+               curr_first <- curr_inv %>%
+                 xml2::xml_find_first(".//first-name") %>%
+                 xml2::xml_text()
+               
+               curr_last <- curr_inv %>%
+                 xml2::xml_find_first(".//last-name") %>%
+                 xml2::xml_text()
+               
                paste(curr_first, curr_last)
              }) %>%
       paste0(collapse = ";") %>%
@@ -153,7 +177,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
 
     # extract references
     references <- curr_xml %>%
-      xml2::xml_find_all(".//us-patent-grant//references-cited//citation//patcit") %>%
+      xml2::xml_find_all(".//us-patent-grant//us-references-cited//us-citation//patcit") %>%
       vapply(USE.NAMES = FALSE,
              FUN.VALUE = character(1),
              FUN = function(curr_pcit_xml) {
@@ -181,15 +205,24 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
       format_field_df() %>%
       remove_csv_issues()
+    
+    #extract kind
+    kind <- curr_xml %>%
+      xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//publication-reference//document-id//kind") %>%
+      xml2::xml_text() %>%
+      format_field_df()
+
 
     # output to file in CSV format
-    cat(paste0("\"",WKU,"\",",
+    cat(paste0("\"",doc_number,"\",",
+               "\"",kind,"\",",
                "\"",title,"\",",
                app_date,",",
                issue_date,",",
                "\"",inventor,"\",",
+               "\"",applicant,"\",",
                "\"",assignee,"\",",
-               "\"",icl_class,"\",",
+               "\"",ipc_class,"\",",
                "\"",references,"\",",
                "\"",claims,"\",",
                "\"",abstract,"\"\n"),
