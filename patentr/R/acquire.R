@@ -77,7 +77,7 @@ get_bulk_patent_data <- function(year, week, output_file) {
   
   #ADDED THIS --> only writes header for the first week
   if (!file.exists(output_file)) {
-    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Inventor,Applicant,Assignee,IPC_Class,References,Claims,Abstracts\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term of Patent,Inventor,Applicant,Assignee,IPC_Class,References,US Series Code,Claims,Abstracts\n",
         file = output_file)
   }
 
