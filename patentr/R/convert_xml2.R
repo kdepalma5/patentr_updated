@@ -10,7 +10,7 @@ convert_xml2 <- function(date_df,
 
   # create header for output file (if necessary)
   if (header) {
-    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term of Patent,Inventor,Applicant,Assignee,IPC_Class,References,US Series Code,Claims,Abstract\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Locarno_Class,IPC_Class,CPC_Class,Related_CPC_Classes,References,US_Series_Code,Claims,Abstract\n",
         file = output_file)
   }
 
@@ -107,7 +107,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(" Years") %>%
       format_field_df()
 
-    #extract ipc class
+    #extract IPC class
     ipc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//classifications-ipcr//classification-ipcr") %>%
       vapply(USE.NAMES = FALSE,
@@ -224,6 +224,36 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       xml2::xml_text() %>%
       format_field_df()
 
+    # extract CPC class
+    main_cpc_class <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//classification-cpc") %>%
+      vapply(USE.NAMES = FALSE,
+             FUN.VALUE = character(1),
+             FUN = function(curr_cpc) {
+               section <- curr_cpc %>% xml2::xml_find_first(".//section") %>% xml2::xml_text()
+               class <- curr_cpc %>% xml2::xml_find_first(".//class") %>% xml2::xml_text()
+               subclass <- curr_cpc %>% xml2::xml_find_first(".//subclass") %>% xml2::xml_text()
+               main_group <- curr_cpc %>% xml2::xml_find_first(".//main-group") %>% xml2::xml_text()
+               subgroup <- curr_cpc %>% xml2::xml_find_first(".//subgroup") %>% xml2::xml_text()
+               paste0(section, class, subclass, " ", main_group, "/", subgroup)
+             }) %>%
+      paste0(collapse = ";")
+    
+    # extract related CPC classes
+    related_cpc_class <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//classification-cpc-text") %>%
+      xml2::xml_text() %>%
+      gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
+      paste0(collapse = ";") %>%
+      remove_csv_issues()
+    
+    # extract Locarno International Classification of Design
+    locarno_class<- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classification-locarno//main-classification") %>%
+      xml2::xml_text() %>%
+      gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
+      paste0(collapse = ";") %>%
+      remove_csv_issues()
 
     # output to file in CSV format
     cat(paste0("\"",doc_number,"\",",
@@ -235,7 +265,10 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                "\"",inventor,"\",",
                "\"",applicant,"\",",
                "\"",assignee,"\",",
+               "\"",locarno_class,"\",",
                "\"",ipc_class,"\",",
+               "\"",main_cpc_class,"\",",
+               "\"",related_cpc_class,"\",",
                "\"",references,"\",",
                "\"",series_code,"\",",
                "\"",claims,"\",",
