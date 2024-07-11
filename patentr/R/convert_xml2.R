@@ -10,7 +10,7 @@ convert_xml2 <- function(date_df,
 
   # create header for output file (if necessary)
   if (header) {
-    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Inventor,Applicant,Assignee,IPC_Class,References,Claims,Abstract\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term of Patent,Inventor,Applicant,Assignee,IPC_Class,References,US Series Code,Claims,Abstract\n",
         file = output_file)
   }
 
@@ -100,6 +100,11 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       xml2::xml_text() %>%
       lubridate::as_date() %>%
       as.character() %>%
+      format_field_df()
+    patent_length <- curr_xml %>%
+      xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//us-term-of-grant//length-of-grant") %>%
+      xml2::xml_text() %>%
+      paste0(" Years") %>%
       format_field_df()
 
     #extract ipc class
@@ -198,6 +203,13 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       gsub(pattern = ";;+", replacement = ";")
 
+    # extract Series Code
+    series_code <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-application-series-code") %>%
+      xml2::xml_text() %>%
+      format_field_df() %>%
+      remove_csv_issues()
+
     #extract abstract
     abstract <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//abstract//p") %>%
@@ -219,11 +231,13 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                "\"",title,"\",",
                app_date,",",
                issue_date,",",
+               "\"",patent_length,"\",",
                "\"",inventor,"\",",
                "\"",applicant,"\",",
                "\"",assignee,"\",",
                "\"",ipc_class,"\",",
                "\"",references,"\",",
+               "\"",series_code,"\",",
                "\"",claims,"\",",
                "\"",abstract,"\"\n"),
         file = csv_con,
