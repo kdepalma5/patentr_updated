@@ -10,7 +10,7 @@ convert_xml2 <- function(date_df,
 
   # create header for output file (if necessary)
   if (header) {
-    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Locarno_Class,IPC_Class,CPC_Class,Related_CPC_Classes,References,US_Series_Code,Claims,Abstract\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Locarno_Class,IPC_Class,CPC_Class,Related_CPC_Classes,USPC_Class,Related_USPC_Classes,References,US_Series_Code,Claims,Abstract\n",
         file = output_file)
   }
 
@@ -255,6 +255,37 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
+        # extract USPC class
+      main_uspc_class <- curr_xml %>%
+        xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//classification-national//main-classification") %>%
+        xml2::xml_text() %>%
+        format_field_df() %>%
+        remove_csv_issues()
+      
+      further_uspc_class <- curr_xml %>%
+        xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//classification-national//further-classification") %>%
+        xml2::xml_text() %>%
+        format_field_df() %>%
+        remove_csv_issues()
+      
+      if((further_uspc_class == "NA") && (main_uspc_class == "None")){
+        uspc_class <- ""
+      } else if(further_uspc_class == "NA"){
+        uspc_class <- main_uspc_class
+      } else if (main_uspc_class == "None"){
+        uspc_class <- further_uspc_class
+      } else {
+        uspc_class <- paste0(main_uspc_class, ";", further_uspc_class)
+      }
+    
+    # extract related USPC classes
+    related_uspc_class <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-field-of-classification-search//classification-national//main-classification") %>%
+      xml2::xml_text() %>%
+      gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
+      paste0(collapse = ";") %>%
+      remove_csv_issues()
+
     # output to file in CSV format
     cat(paste0("\"",doc_number,"\",",
                "\"",kind,"\",",
@@ -269,6 +300,8 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                "\"",ipc_class,"\",",
                "\"",main_cpc_class,"\",",
                "\"",related_cpc_class,"\",",
+               "\"",uspc_class,"\",",
+               "\"",related_uspc_class,"\",",
                "\"",references,"\",",
                "\"",series_code,"\",",
                "\"",claims,"\",",
