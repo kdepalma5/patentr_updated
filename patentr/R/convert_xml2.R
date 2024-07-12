@@ -10,7 +10,7 @@ convert_xml2 <- function(date_df,
 
   # create header for output file (if necessary)
   if (header) {
-    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Locarno_Class,IPC_Class,CPC_Class,Related_CPC_Classes,USPC_Class,Related_USPC_Classes,References,US_Series_Code,Claims,Abstract\n",
+    cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Assignee_Role,Locarno_Class,IPC,Main_CPC,Further_CPC,Related_CPC,Main_USPC,Further_USPC,Related_USPC,References,US_Series_Code,Claims,Abstract\n",
         file = output_file)
   }
 
@@ -180,6 +180,19 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
+    # extract assignee role
+    assignee_role <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//assignees//assignee") %>%
+      vapply(USE.NAMES = FALSE,
+             FUN.VALUE = character(1),
+             FUN = function(curr_assign) {
+               curr_assign %>%
+                 xml2::xml_find_first(".//addressbook//role") %>%
+                 xml2::xml_text()
+             }) %>%
+      paste0(collapse = ";") %>%
+      remove_csv_issues()
+
     # extract references
     references <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-references-cited//us-citation//patcit") %>%
@@ -224,7 +237,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       xml2::xml_text() %>%
       format_field_df()
 
-    # extract CPC class
+    # extract main CPC class
     main_cpc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classifications-cpc//main-cpc//classification-cpc") %>%
       vapply(USE.NAMES = FALSE,
@@ -239,6 +252,21 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
              }) %>%
       paste0(collapse = ";")
     
+    # extract further CPC class
+    further_cpc_class <- curr_xml %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classifications-cpc//further-cpc//classification-cpc") %>%
+      vapply(USE.NAMES = FALSE,
+             FUN.VALUE = character(1),
+             FUN = function(curr_cpc) {
+               section <- curr_cpc %>% xml2::xml_find_first(".//section") %>% xml2::xml_text()
+               class <- curr_cpc %>% xml2::xml_find_first(".//class") %>% xml2::xml_text()
+               subclass <- curr_cpc %>% xml2::xml_find_first(".//subclass") %>% xml2::xml_text()
+               main_group <- curr_cpc %>% xml2::xml_find_first(".//main-group") %>% xml2::xml_text()
+               subgroup <- curr_cpc %>% xml2::xml_find_first(".//subgroup") %>% xml2::xml_text()
+               paste0(section, class, subclass, " ", main_group, "/", subgroup)
+             }) %>%
+      paste0(collapse = ";")
+
     # extract related CPC classes
     related_cpc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-field-of-classification-search//classification-cpc-text") %>%
@@ -255,28 +283,20 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
-        # extract USPC class
+        # extract main USPC class
       main_uspc_class <- curr_xml %>%
         xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//classification-national//main-classification") %>%
         xml2::xml_text() %>%
         format_field_df() %>%
         remove_csv_issues()
       
+      # extract further USPC class
       further_uspc_class <- curr_xml %>%
-        xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//classification-national//further-classification") %>%
+        xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classification-national//further-classification") %>%
         xml2::xml_text() %>%
-        format_field_df() %>%
+        gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
+        paste0(collapse = ";") %>%
         remove_csv_issues()
-      
-      if((further_uspc_class == "NA") && (main_uspc_class == "None")){
-        uspc_class <- ""
-      } else if(further_uspc_class == "NA"){
-        uspc_class <- main_uspc_class
-      } else if (main_uspc_class == "None"){
-        uspc_class <- further_uspc_class
-      } else {
-        uspc_class <- paste0(main_uspc_class, ";", further_uspc_class)
-      }
     
     # extract related USPC classes
     related_uspc_class <- curr_xml %>%
@@ -296,11 +316,14 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                "\"",inventor,"\",",
                "\"",applicant,"\",",
                "\"",assignee,"\",",
+               "\"",assignee_role,"\",",
                "\"",locarno_class,"\",",
                "\"",ipc_class,"\",",
                "\"",main_cpc_class,"\",",
+               "\"",further_cpc_class,"\",",
                "\"",related_cpc_class,"\",",
-               "\"",uspc_class,"\",",
+               "\"",main_uspc_class,"\",",
+               "\"",further_uspc_class,"\",",
                "\"",related_uspc_class,"\",",
                "\"",references,"\",",
                "\"",series_code,"\",",
@@ -308,7 +331,6 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
                "\"",abstract,"\"\n"),
         file = csv_con,
         append = TRUE)
-
     # update loop vars
     pb$tick()
     curr_patrow <- curr_patrow + 1
