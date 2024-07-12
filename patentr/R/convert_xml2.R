@@ -226,7 +226,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
 
     # extract CPC class
     main_cpc_class <- curr_xml %>%
-      xml2::xml_find_all(".//us-patent-grant//classification-cpc") %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classifications-cpc//main-cpc//classification-cpc") %>%
       vapply(USE.NAMES = FALSE,
              FUN.VALUE = character(1),
              FUN = function(curr_cpc) {
@@ -241,7 +241,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
     
     # extract related CPC classes
     related_cpc_class <- curr_xml %>%
-      xml2::xml_find_all(".//us-patent-grant//classification-cpc-text") %>%
+      xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-field-of-classification-search//classification-cpc-text") %>%
       xml2::xml_text() %>%
       gsub(pattern = "\"", replacement = "", fixed = TRUE) %>%
       paste0(collapse = ";") %>%
