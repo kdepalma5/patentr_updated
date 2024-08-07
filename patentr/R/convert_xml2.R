@@ -52,7 +52,7 @@ xml2_to_csv <- function(year, week, output_file) {
 
 # actually does work to convert XML1 to CSV
 xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
-  #COMMENTED THIS OUT
+  #COMMENTED THIS OUT from the original code
   #if (!append) {
    # cat("", file = csv_con, append = FALSE)
   #}
@@ -80,34 +80,44 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
 
     ## process current patent
     curr_xml <- xml2::read_html(curr_patxml)
+
+    # Added: extract doc-number
     doc_number <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//publication-reference//document-id//doc-number") %>%
       xml2::xml_text() %>%
       format_field_df()
+
+    # extract title
     title <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//invention-title") %>%
       xml2::xml_text() %>%
       format_field_df() %>%
       remove_csv_issues()
+
+    # extract application date
     app_date <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//application-reference//date") %>%
       xml2::xml_text() %>%
       lubridate::as_date() %>%
       as.character() %>%
       format_field_df()
+
+    # extract issue date
     issue_date <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//publication-reference//date") %>%
       xml2::xml_text() %>%
       lubridate::as_date() %>%
       as.character() %>%
       format_field_df()
+
+    # Added: extract patent length
     patent_length <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//us-term-of-grant//length-of-grant") %>%
       xml2::xml_text() %>%
       paste0(" Years") %>%
       format_field_df()
 
-    #extract IPC class
+    # Added: extract list of IPC classes
     ipc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//classifications-ipcr//classification-ipcr") %>%
       vapply(USE.NAMES = FALSE,
@@ -122,6 +132,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
              }) %>%
       paste0(collapse = ";")
 
+    # extract all claims
     claims <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//claims//claim//claim-text") %>%
       xml2::xml_text() %>%
@@ -129,7 +140,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = " ") %>%
       remove_csv_issues()
 
-    # extract APPLICANT
+    # Added: extract applicant(s)
     applicant <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-parties//us-applicants//us-applicant//addressbook") %>%
       vapply(USE.NAMES = FALSE,
@@ -148,7 +159,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
     
-    # extract INVENTOR
+    # Modified: extract inventor(s)
     inventor <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-parties//inventors//inventor//addressbook") %>%
       vapply(USE.NAMES = FALSE,
@@ -167,7 +178,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
-    # extract assignee
+    # extract assignee(s)
     assignee <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//assignees//assignee") %>%
       vapply(USE.NAMES = FALSE,
@@ -180,7 +191,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
-    # extract assignee role
+    # Added: extract assignee role(s)
     assignee_role <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//assignees//assignee") %>%
       vapply(USE.NAMES = FALSE,
@@ -193,7 +204,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
-    # extract references
+    # Modified: extract all references
     references <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-references-cited//us-citation//patcit") %>%
       vapply(USE.NAMES = FALSE,
@@ -216,14 +227,14 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       gsub(pattern = ";;+", replacement = ";")
 
-    # extract Series Code
+    # Added: extract series code
     series_code <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-application-series-code") %>%
       xml2::xml_text() %>%
       format_field_df() %>%
       remove_csv_issues()
 
-    #extract abstract
+    # Added: extract abstract
     abstract <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//abstract//p") %>%
       xml2::xml_text() %>%
@@ -231,13 +242,13 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       format_field_df() %>%
       remove_csv_issues()
     
-    #extract kind
+    # Added: extract kind
     kind <- curr_xml %>%
       xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//publication-reference//document-id//kind") %>%
       xml2::xml_text() %>%
       format_field_df()
 
-    # extract main CPC class
+    # Added: extract main CPC class (under US Classifications section on a patent)
     main_cpc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classifications-cpc//main-cpc//classification-cpc") %>%
       vapply(USE.NAMES = FALSE,
@@ -252,7 +263,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
              }) %>%
       paste0(collapse = ";")
     
-    # extract further CPC class
+    # Added: extract a list of further CPC classes (under US Classifications section on a patent)
     further_cpc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classifications-cpc//further-cpc//classification-cpc") %>%
       vapply(USE.NAMES = FALSE,
@@ -267,7 +278,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
              }) %>%
       paste0(collapse = ";")
 
-    # extract related CPC classes
+    # Added: extract a list of related CPC classes (under Field of Classification System section on a patent)
     related_cpc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-field-of-classification-search//classification-cpc-text") %>%
       xml2::xml_text() %>%
@@ -275,7 +286,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
     
-    # extract Locarno International Classification of Design
+    # Added: extract Locarno International Classification of Design
     locarno_class<- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classification-locarno//main-classification") %>%
       xml2::xml_text() %>%
@@ -283,14 +294,14 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
       paste0(collapse = ";") %>%
       remove_csv_issues()
 
-        # extract main USPC class
+      # Added: extract main USPC class
       main_uspc_class <- curr_xml %>%
         xml2::xml_find_first(".//us-patent-grant//us-bibliographic-data-grant//classification-national//main-classification") %>%
         xml2::xml_text() %>%
         format_field_df() %>%
         remove_csv_issues()
       
-      # extract further USPC class
+      # Added: extract further USPC classes
       further_uspc_class <- curr_xml %>%
         xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//classification-national//further-classification") %>%
         xml2::xml_text() %>%
@@ -298,7 +309,7 @@ xml2_to_csv_base <- function(xml2_file, csv_con, append = FALSE) {
         paste0(collapse = ";") %>%
         remove_csv_issues()
     
-    # extract related USPC classes
+    # Added: extract a list of related USPC classes
     related_uspc_class <- curr_xml %>%
       xml2::xml_find_all(".//us-patent-grant//us-bibliographic-data-grant//us-field-of-classification-search//classification-national//main-classification") %>%
       xml2::xml_text() %>%
