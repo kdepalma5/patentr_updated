@@ -7,19 +7,19 @@ This enhanced version of the `patentr` package facilitates easy access to USPTO 
 - Doc-Number
 - Kind
 - Title
-- Application Date
-- Issue Date
-- Term of Patent
-- Inventor
-- Applicant
-- Assignee
-- Assignee Role
-- Locarno Class
-- IPC
-- Main CPC, Further CPC, Related CPC
-- Main USPC, Further USPC, Related USPC
+- Application date
+- Issue date
+- Term of patent
+- Inventor name(s)
+- Applicant name(s)
+- Assignee name(s)
+- Assignee role(s)
+- Locarno classification
+- IPC classification(s)
+- Main CPC, Further CPC, and Related CPC classifications
+- Main USPC, Further USPC, and Related USPC classifications
 - References
-- US Series Code
+- U.S. series code
 - Claims
 - Abstract
 
