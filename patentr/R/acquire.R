@@ -71,11 +71,7 @@ get_bulk_patent_data <- function(year, week, output_file) {
   date_df_xml1<- dplyr::filter(date_df, .data$Year >= 2002 & .data$Year <= 2004)
   date_df_xml2<- dplyr::filter(date_df, .data$Year >= 2005)
 
-  # output header --> added abstracts
-  #cat("WKU,Title,App_Date,Issue_Date,Inventor,Applicant,Assignee,ICL_Class,References,Claims,Abstracts\n",
-      #file = output_file)
-  
-  #ADDED THIS --> only writes header for the first week
+  #Modified: Only writes header for the first week
   if (!file.exists(output_file)) {
     cat("Doc-Number,Kind,Title,App_Date,Issue_Date,Term_of_Patent,Inventor,Applicant,Assignee,Assignee_Role,Locarno_Class,IPC,Main_CPC,Further_CPC,Related_CPC,Main_USPC,Further_USPC,Related_USPC,References,US_Series_Code,Claims,Abstract\n",
         file = output_file)
