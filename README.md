@@ -1,4 +1,4 @@
-# patentr-w_abstracts_plus_updates
+# patentr_updated
 
 ## Extension to [JYProys patentr](https://github.com/JYProjs/patentr) R package 
 This enhanced version of the `patentr` package facilitates easy access to USPTO bulk patent data by downloading and collecting the specified metadata listed below and outputting it into a CSV file.
