@@ -52,3 +52,13 @@ get_bulk_patent_data(year = rep(1980, 5),
 ```
 
 For more information go to [JYProys patentr](https://github.com/JYProjs/patentr)
+
+# Contributors
+
+This project was developed by:
+
+- **[Kayla DePalma](https://github.com/kdepalma5)**
+- **[Benjamin Ullrich](https://github.com/BenUllrich )**
+- **[Jared Surajballi](https://github.com/jsurajba)**
+
+Special thanks to [Dr. Aron Lindberg](https://github.com/aronlindberg) for his supervision and guidance throughout this project.
