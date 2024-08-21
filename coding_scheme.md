@@ -16,7 +16,9 @@ Below is a table listing 11 AI classifications along with their definitions, whi
 | **Predictive Analysis** | The use of statistical techniques and machine learning models to analyze current and historical data to make predictions about future events or trends.<br><br>Examples include predicting traffic patterns, individuals’ daily routines, and optimizing resource usage. |
 | **Gaming/Strategy** | Utilizing the ability to play games with known rules, output information, and input information.<br><br>The key distinctions within this category are decisiveness and adaptability. Models are expected to act with an understanding of cause/effect and make a series of decisions independently, without human intervention. |
 
-## Interrater Reliability (IRR)
+<br>
+
+# Interrater Reliability (IRR)
 
 This coding scheme achieved an IRR of 0.922 with three raters, indicating excellent consistency. 
 
@@ -35,10 +37,9 @@ kappa2(data[5:6], weight = "unweighted") # Rater 2 and Rater 3
 kappa2(cbind(data[4], data[6]), weight = "unweighted") # Rater 1 and Rater 3
 
 ```
+<br>
 
-
-
-## Relevant CPC/IPC codes
+# Relevant CPC/IPC codes
 During our analysis of various patents, we compiled a list of relevant CPC/IPC codes that correspond to specific AI classifications listed in the table below.
 
 | AI Application | Relevant CPC/IPC Codes |
