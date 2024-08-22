@@ -53,6 +53,9 @@ get_bulk_patent_data(year = rep(1980, 5),
 
 For more information go to [JYProys patentr](https://github.com/JYProjs/patentr)
 
+# AI Coding Scheme to Classify Patents
+`coding_scheme.md` includes a list of AI classifications designed to be mutually exclusive and collectively exhaustive for categorizing AI-related patents. This coding scheme achieved an interrater reliability of 0.922 with three raters, indicating excellent consistency.
+
 # Contributors
 
 This project was developed by:
